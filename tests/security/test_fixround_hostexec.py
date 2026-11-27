@@ -207,7 +207,7 @@ def test_seatbelt_refuses_to_create_a_hard_link_to_an_outside_file(host, tmp_pat
     outside.mkdir()
     (outside / "secret.txt").write_text("TOP-SECRET")
     r = host["tool"]("git.run", {"args": ["--version"]})  # the sandbox works at all
-    assert r["ok"] and r["result"]["exit_code"] == 0
+    assert r["ok"] and r["result"]["exit_code"] == 0, r
     hostexec.update_root(host["root"]["id"], {"allowed_tools": []}, "owner")
     r = host["tool"]("shell.execute", {"command": f"ln '{outside / 'secret.txt'}' hl.txt; echo rc=$?"})
     assert r["ok"] and "rc=0" not in r["result"]["stdout"], r

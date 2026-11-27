@@ -465,7 +465,8 @@ def test_network_on_denies_every_address_of_this_mac(tmp_path):
         argv = [SANDBOX_EXEC, "-p", profile, "/usr/bin/python3", "-I", "-c", CONNECT, addr, str(port), str(int(fam))]
         r = subprocess.run(argv, capture_output=True, text=True, timeout=30, cwd=str(root),
                            env={"PATH": "/usr/bin:/bin", "HOME": str(home)})
-        return r.stdout.strip()
+        # a probe that never ran (e.g. the python3 shim could not load libxcrun) must not read as a result
+        return r.stdout.strip() or f"<probe printed nothing, exit {r.returncode}: {r.stderr.strip()[:300]}>"
 
     seen = []
     for label, addr, fam in _own_addresses():

@@ -512,12 +512,43 @@ def _sb_str(p: Path | str) -> str:
     return '"' + str(p).replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
+XCODE_SELECT_LINK = "/private/var/db/xcode_select_link"
+
+
+def active_developer_bundle(link: str | None = None) -> Path | None:
+    """The Xcode bundle that `xcode-select -s` made active, when it is not /Applications/Xcode.app.
+
+    /usr/bin/git, python3, clang, swift, ... are shims that load libxcrun from the active developer directory. The
+    sandboxed environment is rebuilt without DEVELOPER_DIR, so inside the sandbox that directory comes from this
+    root-owned link (set with `sudo xcode-select -s`). A Mac whose active Xcode is Xcode_16.4.app or Xcode-beta.app
+    needs read access to that bundle or every shim fails with "file system sandbox blocked open()".
+
+    Returns the resolved `<name>.app` bundle only when the link points at `<bundle>/Contents/Developer` and that
+    directory exists. None for the Command Line Tools (/Library/Developer is readable already), a missing or
+    unreadable link, a non-bundle target, and any bundle inside the user's home other than ~/Applications."""
+    try:
+        dev = Path(os.path.realpath(link or XCODE_SELECT_LINK))
+    except (OSError, ValueError):
+        return None
+    if not dev.is_absolute() or dev.parts[-2:] != ("Contents", "Developer") or not dev.is_dir():
+        return None
+    bundle = dev.parent.parent
+    if not re.fullmatch(r"[^/]+\.app", bundle.name) or bundle == Path("/Applications/Xcode.app"):
+        return None
+    home = Path.home().resolve()
+    if bundle.is_relative_to(home) and not bundle.is_relative_to(home / "Applications"):
+        return None
+    return bundle
+
+
 def sandbox_profile(root: Path, home: Path, *, read_only: bool, network: bool) -> str:
+    xcode = active_developer_bundle()
     reads = ['(literal "/")', *[f'(subpath "{p}")' for p in (
         "/usr", "/bin", "/sbin", "/System", "/Library/Developer", "/Library/Frameworks", "/Library/Apple",
         "/Library/Preferences", "/opt/homebrew", "/private/etc", "/private/var/db/timezone", "/private/var/select",
         "/Applications/Xcode.app", "/dev")],
-        '(literal "/private/var/db/xcode_select_link")', '(literal "/etc")', '(literal "/tmp")', '(literal "/var")',
+        *([f"(subpath {_sb_str(xcode)})"] if xcode else []),  # read only: never in the write list below
+        f'(literal "{XCODE_SELECT_LINK}")', '(literal "/etc")', '(literal "/tmp")', '(literal "/var")',
         f"(subpath {_sb_str(root)})", f"(subpath {_sb_str(home)})"]
     writes = [f"(subpath {_sb_str(home)})", '(literal "/dev/null")', '(literal "/dev/zero")',
               '(literal "/dev/dtracehelper")', '(regex #"^/dev/tty")', '(regex #"^/dev/fd/")']

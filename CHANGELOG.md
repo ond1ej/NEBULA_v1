@@ -5,6 +5,12 @@ All notable changes to NEBULA are documented in this file. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Host execution: on a Mac whose active Xcode (`xcode-select -s`) is not `/Applications/Xcode.app`, for example
+  `Xcode-beta.app`, every `/usr/bin` developer shim (`git`, `python3`, `clang`, `swift`) failed inside the sandbox
+  with "file system sandbox blocked open()". The sandbox now also grants read-only access to the active Xcode bundle.
+
 ## [1.0.0] - first public release
 
 The first public, open-source release of NEBULA under the MIT License. It is an unsigned developer build installed from

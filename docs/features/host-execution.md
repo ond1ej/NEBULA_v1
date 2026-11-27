@@ -56,7 +56,10 @@ developer tools present on the Mac and installs nothing globally.
    file outside it. Read-only folders reject changes.
 2. **Every command runs in a Seatbelt sandbox** (`/usr/bin/sandbox-exec`, deny by default): reads are limited to
    system and tool locations, the folder and the agent's home; writes to the folder (unless read-only) and the agent's
-   home; the Keychain, pasteboard, WindowServer, LaunchServices and privacy (TCC) services are blocked. Network access
+   home. Tool locations include `/Applications/Xcode.app` and, read-only, the Xcode bundle that `xcode-select` made
+   active when that is another one (for example `Xcode-beta.app`; inside your home folder only under
+   `~/Applications`), because `/usr/bin/git`, `python3` and `clang` load their libraries from it. The Keychain,
+   pasteboard, WindowServer, LaunchServices and privacy (TCC) services are blocked. Network access
    follows the folder setting (off by default). Even when it is on, Unix sockets stay denied (except the one for name
    resolution), so commands cannot reach sockets such as the Docker daemon's or the VM helper's. Every address of the
    Mac itself is denied too, because Seatbelt's `localhost` filter matches all of the Mac's interface addresses, not
