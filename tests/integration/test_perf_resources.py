@@ -237,6 +237,30 @@ def test_host_resources_in_process_and_vm_footprint(tmp_path):
     assert cpu is None or 0.0 <= cpu <= 100.0
 
 
+def test_host_resources_uses_ps_only_when_libproc_cannot_answer(tmp_path, monkeypatch):
+    """No VM running (libproc answered) -> no `ps`; libproc unavailable -> the `ps` RSS fallback is used."""
+    import subprocess
+
+    import nebula_host.vm as vm
+
+    calls = []
+
+    def fake_run(argv, *a, **kw):
+        calls.append(argv)
+        return subprocess.CompletedProcess(argv, 0, stdout="2048 /System/Library/Frameworks/Virtualization.framework/"
+                                                           "com.apple.Virtualization.VirtualMachine\n10 /bin/zsh\n")
+
+    monkeypatch.setattr(vm.subprocess, "run", fake_run)
+    monkeypatch.setattr(vm, "vm_footprint", lambda: (True, None))
+    r = vm._real_host_resources(tmp_path)
+    assert r["vm_resident_bytes"] == 0 and r["vm_footprint_bytes"] is None
+    assert not any(c[0] == "/bin/ps" for c in calls)
+    monkeypatch.setattr(vm, "vm_footprint", lambda: (False, None))
+    r = vm._real_host_resources(tmp_path)
+    assert ["/bin/ps", "-axo", "rss=,comm="] in calls and r["vm_resident_bytes"] == 2048 * 1024
+    assert r["vm_footprint_bytes"] is None
+
+
 def test_pressure_drill_defers_and_resumes(client, fake_guest, monkeypatch, mem):
     """The controlled test interface used for scenario G on the live Mac: a simulated pressure state queues new
     work, ending the drill resumes it, and a drill can never relax real pressure."""

@@ -349,16 +349,20 @@ def _vm_statistics() -> dict[str, int] | None:
 _VM_PID: tuple[float, int | None] = (0.0, None)
 
 
-def vm_footprint() -> dict[str, Any] | None:
+def vm_footprint() -> tuple[bool, dict[str, Any] | None]:
     """Real memory footprint of the Virtualization.framework VM process (what Activity Monitor shows). `ps` RSS
-    misses the guest RAM (it reported ~300 MB for a VM using ~3 GB), so accounting used the wrong number."""
+    misses the guest RAM (it reported ~300 MB for a VM using ~3 GB), so accounting used the wrong number.
+
+    Returns (measured, footprint). measured is False only when libproc could not answer (not loadable, or the
+    rusage call failed), which is when the `ps` fallback in host_resources applies; (True, None) means libproc
+    looked and no VM process is running, so there is nothing for `ps` to find either."""
     import ctypes
 
     global _VM_PID
     try:
         lp = ctypes.CDLL("/usr/lib/libproc.dylib")
     except OSError:
-        return None
+        return False, None
 
     def name(pid: int) -> str:
         b = ctypes.create_string_buffer(256)
@@ -374,11 +378,11 @@ def vm_footprint() -> dict[str, Any] | None:
                     name(buf[i]).startswith("com.apple.Virtualization.Virtua")), None)
         _VM_PID = (time.time(), pid)
     if pid is None:
-        return None
+        return True, None
     ru = (ctypes.c_uint64 * 40)()  # struct rusage_info_v2 (uuid, user, system, idle, intr, pageins, wired, resident, ...)
     if lp.proc_pid_rusage(pid, 2, ctypes.byref(ru)) != 0:
-        return None
-    return {"pid": pid, "resident_bytes": int(ru[8]), "footprint_bytes": int(ru[9])}
+        return False, None
+    return True, {"pid": pid, "resident_bytes": int(ru[8]), "footprint_bytes": int(ru[9])}
 
 
 def host_resources(data_dir: Path) -> dict[str, Any]:
@@ -402,9 +406,9 @@ def host_resources(data_dir: Path) -> dict[str, Any]:
     available = pages.get("free_count", 0) + pages.get("inactive_count", 0) + pages.get("speculative_count", 0) \
         + pages.get("purgeable_count", 0)
     du = shutil.disk_usage(data_dir if data_dir.exists() else Path.home())
-    fp = vm_footprint()
+    measured, fp = vm_footprint()
     vm_rss = fp["resident_bytes"] if fp else 0
-    if fp is None:  # pragma: no cover - fallback
+    if not measured:  # pragma: no cover - fallback; not taken just because no VM is running
         try:
             out = subprocess.run(["/bin/ps", "-axo", "rss=,comm="], capture_output=True, text=True, timeout=5).stdout
             for line in out.splitlines():
