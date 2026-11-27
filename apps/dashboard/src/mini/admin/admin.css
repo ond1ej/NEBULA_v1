@@ -1,0 +1,35 @@
+/*
+ * Stylesheet of the Mini App's administration area (#/admin/…, mini/admin/AdminArea.tsx). Vite loads it together with
+ * that lazy chunk, so the Mini App's first load does not grow.
+ *
+ * It holds the utilities of the Dashboard's pages AND of the Mini App (everything under src/), all scoped to
+ * <html data-nb-admin>, which AdminArea sets only while it is shown:
+ *  - outside the administration area none of these rules match: the Mini App looks exactly as before, even after
+ *    the area was opened once (the stylesheet stays loaded);
+ *  - inside it every class — Dashboard page, Mini App chrome, sheets and toasts in portals — comes from this one
+ *    consistently ordered build, so a utility re-emitted here can never override a responsive / state variant of
+ *    mini.css (both stylesheets would otherwise contain e.g. `.hidden`, and the later one would win).
+ * Tokens: the Dashboard theme with the Mini App's colours (tokens.css, also light mode) — the same values mini.css
+ * defines, so the shared custom properties do not change when this file loads. No preflight / base layer of its own:
+ * mini.css already has it.
+ */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import '../../styles/theme.css';
+@import '../tokens.css';
+
+@source '../../';
+/* JavaScript identifiers in the sources that are not meant as utilities (as in mini.css) */
+@source not inline('filter ring resize');
+
+@layer utilities {
+  [data-nb-admin] {
+    @tailwind utilities source(none);
+  }
+}
+
+/* The Dashboard's pages expect its 14 px / 1.5 body text (the Mini App's body is 15 px). */
+[data-nb-admin] .nb-admin-page {
+  font-size: 14px;
+  line-height: 1.5;
+}

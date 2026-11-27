@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "channel": "stable",
+  "image_version": "ubuntu-24.04-server-cloudimg-arm64-20261017",
+  "os": "Ubuntu 24.04 LTS (noble) ARM64 cloud image",
+  "url": "https://cloud-images.ubuntu.com/releases/noble/release-20261017/ubuntu-24.04-server-cloudimg-arm64.img",
+  "format": "qcow2",
+  "sha256": "50e24e1fb79e89116e939d90aa7738f7af48c442fa1bc2510131e0b39c50348e",
+  "size_bytes": 616522752,
+  "upstream_checksums_url": "https://cloud-images.ubuntu.com/releases/noble/release-20261017/SHA256SUMS",
+  "upstream_signature_url": "https://cloud-images.ubuntu.com/releases/noble/release-20261017/SHA256SUMS.gpg",
+  "upstream_signing_key_fingerprint": "D2EB44626FDDC30B513D5BB71A5D6C4C7DB87C81",
+  "guest_version": "0.1.0",
+  "playwright_version": "1.65.2"
+}

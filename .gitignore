@@ -1,0 +1,58 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Build output (release archives, e2e reports and artifacts all go to build/)
+build/
+dist/
+node_modules/
+apps/dashboard/dist/
+apps/host-vm-helper/.build/
+apps/host-vm-helper/.swiftpm/
+
+# VM disks and images: never commit them
+*.raw
+*.qcow2
+*.img
+*.iso
+*.dmg
+
+# Secrets, keys, certificates and environment files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p8
+*.p12
+*.cer
+*.crt
+*.mobileprovision
+*.provisionprofile
+id_ed25519*
+id_rsa*
+
+# Databases, logs, backups and diagnostics from a local NEBULA instance
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.log
+logs/
+backups/
+diagnostics/
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+DerivedData/

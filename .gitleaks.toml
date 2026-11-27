@@ -1,0 +1,26 @@
+# Gitleaks configuration. Only genuinely public or synthetic values are allowed; everything else is still reported.
+title = "NEBULA gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Ubuntu cloud-image signing key fingerprint (public) and obviously synthetic test fixtures"
+targetRules = ["generic-api-key"]
+condition = "OR"
+paths = [
+  '''guest/image-builder/manifest\.json''',                              # public Ubuntu UEC signing-key fingerprint
+  '''apps/dashboard/src/features/devices/DevicesPage\.test\.tsx''',      # sequential placeholder fingerprint
+  '''tests/security/test_v3_security\.py''',                             # fake "sk-" key used to prove secrets are rejected
+]
+
+[[allowlists]]
+# One synthetic value in one test, and nothing else in that file: the diagnostics redaction test writes a fake
+# install report with "token": "abcdefgh12345" and asserts that the bundle does not contain it. Both the path AND the
+# exact value must match, so a real key added to the same file is still reported.
+description = "Synthetic token in the diagnostics redaction test"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^tests/unit/test_lifecycle_cli\.py$''']
+regexTarget = "secret"
+regexes = ['''^abcdefgh12345$''']

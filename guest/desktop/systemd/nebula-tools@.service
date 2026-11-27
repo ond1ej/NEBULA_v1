@@ -1,0 +1,53 @@
+[Unit]
+Description=NEBULA agent tool server for %i
+After=nebula-desktop@%i.service
+Wants=nebula-desktop@%i.service
+# One private /tmp per agent, shared by its desktop and its tool server (X socket and lock file, files the agent's
+# shell hands to its desktop). Needs PrivateTmp=yes in both units.
+JoinsNamespaceOf=nebula-desktop@%i.service
+
+[Service]
+Type=simple
+User=%i
+Group=%i
+EnvironmentFile=/var/lib/nebula/agents/%i/desktop.env
+Environment=PYTHONPATH=/opt/nebula/guest
+Environment=PLAYWRIGHT_BROWSERS_PATH=/opt/nebula/ms-playwright
+Environment=XDG_RUNTIME_DIR=/run/nebula-xdg/%i
+RuntimeDirectory=nebula-tools/%i
+RuntimeDirectoryMode=0700
+WorkingDirectory=/home/%i/workspace
+ExecStart=/opt/nebula/venv/bin/python -m nebula_guest.agent_tools
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=tmpfs
+BindPaths=/home/%i
+PrivateDevices=no
+# Sandboxing (audit VM-16). The agent's shell commands and its Chromium run inside this unit.
+# Other agents' /tmp and processes are out of sight:
+PrivateTmp=yes
+ProtectProc=invisible
+# No kernel tuning, modules, kernel log or cgroup changes:
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+# No setuid/setgid files, personality changes or realtime scheduling:
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictRealtime=yes
+# Unix sockets (X11, IPC), IP networking and netlink (Chromium's network-change watcher, `ip`). No AF_VSOCK (the
+# host link is the guest service's), AF_PACKET or other families.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+# Not set on purpose: RestrictNamespaces (Chromium's sandbox needs user namespaces), MemoryDenyWriteExecute (V8's
+# JIT), ProcSubset=pid (ps, free, top and Node's os.cpus() read /proc/stat, /proc/meminfo and /proc/uptime).
+MemoryHigh=950M
+MemoryMax=1250M
+MemorySwapMax=512M
+TasksMax=1024
+CPUQuota=200%
+
+[Install]
+WantedBy=multi-user.target

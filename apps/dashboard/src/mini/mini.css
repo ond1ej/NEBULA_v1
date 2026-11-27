@@ -1,0 +1,307 @@
+/*
+ * Telegram Mini App stylesheet: its own Tailwind build, generated only from the Mini App's sources and the shared
+ * components it renders, plus the shared NEBULA theme. (The Dashboard's 96 KB stylesheet is not loaded here.)
+ * When a Mini App screen starts rendering another shared component, list it below: src/mini/styles.test.ts checks it.
+ */
+@import 'tailwindcss' source(none);
+@import '../styles/theme.css';
+/* NEBULA Mini App design tokens (shared with the administration area's stylesheet, admin/admin.css). */
+@import './tokens.css';
+
+@source './';
+@source '../../mini.html';
+@source '../components/ui.tsx';
+@source '../components/uiBase.tsx';
+@source '../components/uiMore.tsx';
+@source '../components/icons.tsx';
+@source '../components/iconBase.tsx';
+@source '../components/iconsNav.tsx';
+@source '../components/iconsMore.tsx';
+@source '../components/Modal.tsx';
+@source '../components/StatusPill.tsx';
+@source '../components/Toast.tsx';
+@source '../components/tone.ts';
+@source '../components/LazyBoundary.tsx';
+@source '../components/LiveDesktop.tsx';
+@source '../components/TaskStage.tsx';
+@source '../components/avatarGlyphs.tsx';
+@source '../features/smartauth/core/';
+/* JavaScript identifiers in the sources that are not meant as utilities */
+@source not inline('filter ring resize');
+
+/*
+ * Layout.
+ *  --mini-vh            stable visible height (Telegram viewportStableHeight, else 100dvh)
+ *  --mini-vh-live       current visible height (Telegram viewportHeight: shrinks with the Android keyboard)
+ *  --mini-chat-top/-h   visual viewport of the chat (iOS keyboard), set by the conversation screen
+ *  --mini-tg-inset-*    Telegram safeAreaInset + contentSafeAreaInset (fullscreen mode), set from JS
+ *  env(safe-area-*)     device notch / home indicator (viewport-fit=cover)
+ */
+:root {
+  --mini-tabbar-h: 54px;
+  --mini-safe-top: max(env(safe-area-inset-top, 0px), var(--mini-tg-inset-top, 0px));
+  --mini-safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--mini-tg-inset-bottom, 0px));
+  --mini-safe-left: max(env(safe-area-inset-left, 0px), var(--mini-tg-inset-left, 0px));
+  --mini-safe-right: max(env(safe-area-inset-right, 0px), var(--mini-tg-inset-right, 0px));
+}
+
+html,
+body.mini-body {
+  background-color: var(--color-bg);
+}
+
+.mini-body {
+  overscroll-behavior-y: none;
+  font-size: 15px;
+  line-height: 1.45;
+  font-feature-settings: normal;
+  transition: background-color 200ms ease;
+}
+
+.mini-shell {
+  min-height: var(--mini-vh, 100dvh);
+}
+
+.mini-main {
+  padding-bottom: calc(var(--mini-safe-bottom) + 24px);
+}
+.mini-main[data-tabbar='1'] {
+  padding-bottom: calc(var(--mini-tabbar-h) + var(--mini-safe-bottom) + 24px);
+}
+
+.mini-safe-x {
+  padding-left: max(1rem, var(--mini-safe-left));
+  padding-right: max(1rem, var(--mini-safe-right));
+}
+
+.mini-topbar {
+  padding-top: var(--mini-safe-top);
+}
+
+.mini-banner {
+  padding-top: calc(var(--mini-safe-top) + 0.375rem);
+}
+
+/* Pinned to the bottom of the *visible* area: Telegram may render the WebView taller than what is shown. */
+.mini-tabbar {
+  top: calc(var(--mini-vh, 100dvh) - var(--mini-tabbar-h) - var(--mini-safe-bottom));
+  padding-bottom: var(--mini-safe-bottom);
+  background-color: color-mix(in oklab, var(--color-panel) 88%, transparent);
+  -webkit-backdrop-filter: saturate(1.6) blur(18px);
+  backdrop-filter: saturate(1.6) blur(18px);
+}
+.mini-tabbar[data-hidden='1'],
+:root[data-mini-keyboard='1'] .mini-tabbar {
+  display: none;
+}
+
+/* Tab bar items */
+.mini-tab {
+  height: var(--mini-tabbar-h);
+}
+.mini-tab > svg {
+  width: 25px;
+  height: 25px;
+}
+.mini-tab-badge {
+  top: 4px;
+  left: calc(50% + 5px);
+  min-width: 18px;
+  line-height: 18px;
+}
+
+/* Hairlines (instead of borders on glass bars) */
+.nb-hairline {
+  box-shadow: 0 1px 0 var(--color-border);
+}
+.nb-hairline-t {
+  box-shadow: 0 -1px 0 var(--color-border);
+}
+
+/* Glass top bar */
+.mini-glass {
+  background-color: color-mix(in oklab, var(--color-bg) 84%, transparent);
+  -webkit-backdrop-filter: saturate(1.6) blur(18px);
+  backdrop-filter: saturate(1.6) blur(18px);
+}
+
+/* Conversation: only the message list scrolls; header and composer stay put above the keyboard. */
+.mini-chat {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: var(--mini-chat-top, 0px);
+  height: var(--mini-chat-h, var(--mini-vh-live, var(--mini-vh, 100dvh)));
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+  background-color: var(--color-bg);
+}
+.mini-chat-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  overflow-anchor: none;
+}
+.mini-chat-composer {
+  padding-bottom: max(0.5rem, var(--mini-safe-bottom));
+}
+.mini-chat[data-keyboard='1'] .mini-chat-composer {
+  padding-bottom: 0.5rem;
+}
+
+/* Bottom sheets sit above the home indicator. */
+.mini-sheet {
+  padding-bottom: max(0.75rem, var(--mini-safe-bottom));
+}
+
+/* Tap feedback */
+.nb-press {
+  transition:
+    background-color 150ms ease,
+    transform 150ms var(--ease-ios),
+    opacity 150ms ease;
+}
+.nb-press:active:not(:disabled):not([aria-disabled='true']) {
+  transform: scale(0.97);
+}
+.nb-row {
+  transition: background-color 150ms ease;
+}
+.nb-row:active {
+  background-color: var(--color-panel-2);
+}
+
+.nb-skel {
+  background: color-mix(in oklab, var(--color-text) 8%, transparent);
+  animation: var(--animate-shimmer);
+}
+
+/* Text fields: one focus ring for search, composer and inputs */
+.nb-field:focus-within {
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 45%, transparent);
+}
+.nb-input:focus,
+.nb-input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 45%, transparent);
+}
+.nb-input[aria-invalid='true'] {
+  box-shadow: 0 0 0 1.5px color-mix(in oklab, var(--color-danger) 75%, transparent);
+}
+.nb-search::-webkit-search-cancel-button {
+  display: none;
+}
+.nb-composer-input {
+  display: block;
+  resize: none;
+  min-height: 22px;
+  max-height: 168px;
+  padding: 10px 0;
+  line-height: 22px;
+}
+
+/* Wordmark */
+.nb-wordmark {
+  letter-spacing: 0.18em;
+}
+.nb-wordmark-dot {
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-accent) 22%, transparent);
+}
+
+/* Small badge on an avatar (running task) */
+.nb-ring-bg {
+  box-shadow: 0 0 0 2.5px var(--color-bg);
+}
+
+.nb-lightbox-close {
+  top: calc(var(--mini-safe-top) + 0.5rem);
+}
+
+/* Unread / working pulse */
+.nb-pulse {
+  animation: var(--animate-pulse-soft);
+}
+
+/* Markdown inside messages */
+.nb-md {
+  overflow-wrap: anywhere;
+}
+.nb-md > * + * {
+  margin-top: 0.55em;
+}
+.nb-md ul,
+.nb-md ol {
+  padding-left: 1.25em;
+}
+.nb-md ul {
+  list-style: disc;
+}
+.nb-md ol {
+  list-style: decimal;
+}
+.nb-md li + li {
+  margin-top: 0.2em;
+}
+.nb-md a {
+  color: var(--color-accent-soft);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
+.nb-md code.nb-inline {
+  font-size: 0.88em;
+  padding: 0.1em 0.35em;
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--color-text) 9%, transparent);
+}
+.nb-md blockquote {
+  border-left: 3px solid color-mix(in oklab, var(--color-accent) 55%, transparent);
+  padding-left: 0.75em;
+  color: var(--color-muted);
+}
+.nb-md h1,
+.nb-md h2,
+.nb-md h3 {
+  font-weight: 650;
+  line-height: 1.3;
+}
+.nb-md h1 {
+  font-size: 1.15em;
+}
+.nb-md h2 {
+  font-size: 1.08em;
+}
+.nb-md hr {
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+/* Live Desktop pseudo-fullscreen (Telegram WebViews without the Fullscreen API) respects the safe area. */
+.live-stage[data-pseudo-fullscreen='true'] {
+  padding: var(--mini-safe-top) var(--mini-safe-right) var(--mini-safe-bottom) var(--mini-safe-left);
+}
+
+/* The remote desktop is always shown on black, also in the light theme. */
+:root[data-theme='light'] .live-stage {
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nb-press:active:not(:disabled) {
+    transform: none;
+  }
+  .mini-body {
+    transition: none;
+  }
+}
+
+/* Fenced code inside messages */
+.nb-code {
+  background-color: color-mix(in oklab, var(--color-bg) 62%, black);
+}
+:root[data-theme='light'] .nb-code {
+  background-color: #f1f2f6;
+}

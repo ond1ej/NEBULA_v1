@@ -1,0 +1,16 @@
+[Unit]
+Description=NEBULA guest service (vsock RPC + VNC tunnel)
+After=network.target systemd-modules-load.service
+Wants=systemd-modules-load.service
+
+[Service]
+Type=simple
+Environment=PYTHONPATH=/opt/nebula/guest
+Environment=PLAYWRIGHT_BROWSERS_PATH=/opt/nebula/ms-playwright
+ExecStartPre=/sbin/modprobe vmw_vsock_virtio_transport
+ExecStart=/opt/nebula/venv/bin/python -m nebula_guest.server
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

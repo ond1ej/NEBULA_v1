@@ -1,0 +1,61 @@
+#!/bin/bash
+# Starts one agent's private desktop: Xvnc on :$NEBULA_DISPLAY (unix-socket RFB only, no TCP),
+# private X11 cookie, then an XFCE session on a private D-Bus. Runs as the agent user.
+set -euo pipefail
+: "${NEBULA_DISPLAY:?}"
+GEOMETRY="${NEBULA_GEOMETRY:-1280x800}"
+export DISPLAY=":${NEBULA_DISPLAY}"
+export XAUTHORITY="${HOME}/.Xauthority"
+export XDG_RUNTIME_DIR="/run/nebula-xdg/${USER}"
+export XDG_SESSION_TYPE=x11
+VNC_SOCK="/run/nebula-vnc/${USER}/vnc.sock"
+NEBULA_PY="${NEBULA_PYTHON:-/opt/nebula/venv/bin/python}"
+# Who serves the display? Only checks socket peer credentials; sends no X protocol and no cookie (audit VM-06).
+xcheck() { PYTHONPATH=/opt/nebula/guest "$NEBULA_PY" -m nebula_guest.xdisplay --display "${NEBULA_DISPLAY}" "$@"; }
+
+umask 077
+# Another user may already serve this display number (squatting while this agent was stopped): never start the
+# session (or send this agent's cookie) to it.
+if ! xcheck --absent; then
+  echo "display ${DISPLAY} is already served by another process; refusing to start" >&2
+  exit 1
+fi
+rm -f "${XAUTHORITY}"
+touch "${XAUTHORITY}"
+xauth -q -f "${XAUTHORITY}" add "${DISPLAY}" . "$(mcookie)"
+
+rm -f "${VNC_SOCK}"
+Xvnc "${DISPLAY}" -geometry "${GEOMETRY}" -depth 24 \
+  -rfbport -1 -rfbunixpath "${VNC_SOCK}" -rfbunixmode 0600 \
+  -SecurityTypes None -auth "${XAUTHORITY}" -nolisten tcp \
+  -AlwaysShared -desktop "NEBULA ${USER}" &
+XPID=$!
+
+# Wait until every listening socket of the display belongs to OUR Xvnc (uid + pid) before any X client connects.
+ready=0
+for _ in $(seq 1 100); do
+  if ! kill -0 "$XPID" 2>/dev/null; then echo "Xvnc exited" >&2; exit 1; fi
+  rc=0
+  xcheck --pid "$XPID" --require || rc=$?
+  if [ "$rc" -eq 0 ]; then ready=1; break; fi
+  if [ "$rc" -ne 4 ]; then
+    echo "display ${DISPLAY} is served by another process; refusing to start the session" >&2
+    kill "$XPID" 2>/dev/null || true
+    exit 1
+  fi
+  sleep 0.1
+done
+if [ "$ready" -ne 1 ]; then echo "Xvnc did not open ${DISPLAY}" >&2; kill "$XPID" 2>/dev/null || true; exit 1; fi
+for _ in $(seq 1 100); do
+  if xdpyinfo >/dev/null 2>&1; then break; fi
+  if ! kill -0 "$XPID" 2>/dev/null; then echo "Xvnc exited" >&2; exit 1; fi
+  sleep 0.1
+done
+xsetroot -solid "#1b1d27" || true
+
+dbus-run-session -- startxfce4 &
+SPID=$!
+trap 'kill $SPID $XPID 2>/dev/null; exit 0' TERM INT  # an intentional stop is not a failure
+wait -n "$XPID" "$SPID"
+kill "$SPID" "$XPID" 2>/dev/null || true
+exit 1

@@ -1,0 +1,39 @@
+name: Feature request
+description: Suggest an improvement or a new capability.
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please check docs/roadmap.md and docs/limitations.md first. Some limits are deliberate, for example: no use of
+        consumer AI subscriptions outside a vendor's official flow, no public exposure of the dashboard, no hosted
+        edition.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the situation and why the current behaviour is not enough.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+  - type: textarea
+    id: security
+    attributes:
+      label: Security and privacy impact
+      description: Does this expose anything new, add a network listener, touch secrets, or give agents more access?
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I would like to work on this myself.

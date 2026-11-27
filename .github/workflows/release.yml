@@ -1,0 +1,138 @@
+# Release archives for a version tag (vX.Y.Z): source tarball, prebuilt dashboard bundle (with LICENSE and the
+# third-party notices), SHA256SUMS and release notes taken from CHANGELOG.md.
+#
+# A pushed tag creates a DRAFT GitHub release; the maintainer reviews and publishes it by hand.
+# Run it manually (workflow_dispatch) to build and verify the archives for an existing tag without publishing anything.
+# No secrets are used: only the automatic GITHUB_TOKEN, with write access in the publish job alone.
+name: release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build (dry run: archives are uploaded as a workflow artifact, nothing is published)"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build release archives
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check tag and versions
+        id: meta
+        env:
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          TAG="${INPUT_TAG:-${GITHUB_REF_NAME}}"
+          case "$TAG" in v[0-9]*.[0-9]*.[0-9]*) ;; *) echo "not a release tag: $TAG" >&2; exit 1 ;; esac
+          VERSION="${TAG#v}"
+          PY_VERSION="$(sed -n 's/^version = "\(.*\)"$/\1/p' pyproject.toml | head -1)"
+          APP_VERSION="$(sed -n 's/^APP_VERSION = "\(.*\)"$/\1/p' apps/host-api/nebula_host/config.py | head -1)"
+          WEB_VERSION="$(node -p "require('./apps/dashboard/package.json').version")"
+          for v in "$PY_VERSION" "$APP_VERSION" "$WEB_VERSION"; do
+            [ "$v" = "$VERSION" ] || { echo "version mismatch: tag $VERSION, pyproject $PY_VERSION, app $APP_VERSION, dashboard $WEB_VERSION" >&2; exit 1; }
+          done
+          grep -q "^## \[$VERSION\]" CHANGELOG.md || { echo "CHANGELOG.md has no section for $VERSION" >&2; exit 1; }
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      - name: Build the dashboard
+        working-directory: apps/dashboard
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Create archives, release notes and checksums
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          OUT="$RUNNER_TEMP/release"
+          mkdir -p "$OUT" "$RUNNER_TEMP/web/nebula-dashboard-$VERSION"
+          # source: exactly the tagged tree (no build output, no ignored files)
+          git archive --format=tar --prefix="NEBULA-$VERSION/" "$TAG" | gzip -n -9 > "$OUT/NEBULA-$VERSION-source.tar.gz"
+          # dashboard bundle: dist plus the project license and the third-party notices
+          cp -R apps/dashboard/dist "$RUNNER_TEMP/web/nebula-dashboard-$VERSION/dist"
+          cp LICENSE THIRD_PARTY_NOTICES.md "$RUNNER_TEMP/web/nebula-dashboard-$VERSION/"
+          tar --sort=name --owner=0 --group=0 --numeric-owner --mtime="@$(git log -1 --format=%ct "$TAG")" \
+            -C "$RUNNER_TEMP/web" -cf - "nebula-dashboard-$VERSION" | gzip -n -9 > "$OUT/nebula-dashboard-$VERSION.tar.gz"
+          # release notes: the CHANGELOG section of this version
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" { on = 1; next }
+            on && /^## \[/ { exit }
+            on && /^\[[^]]+\]: / { next }
+            on { print }
+          ' CHANGELOG.md > "$OUT/RELEASE_NOTES.md"
+          {
+            echo
+            echo "Unsigned developer build. Verify downloads with: shasum -a 256 -c SHA256SUMS"
+            echo
+            echo "SHA-256 of the VM image release public key (guest/image-builder/keys/nebula-release-ed25519.pub):"
+            echo "\`$(sha256sum guest/image-builder/keys/nebula-release-ed25519.pub | cut -d' ' -f1)\`"
+          } >> "$OUT/RELEASE_NOTES.md"
+          [ -s "$OUT/RELEASE_NOTES.md" ] || { echo "empty release notes" >&2; exit 1; }
+          (cd "$OUT" && sha256sum "NEBULA-$VERSION-source.tar.gz" "nebula-dashboard-$VERSION.tar.gz" > SHA256SUMS && sha256sum -c SHA256SUMS)
+          ls -la "$OUT"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-${{ steps.meta.outputs.version }}
+          path: ${{ runner.temp }}/release/
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Create draft GitHub release
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-${{ needs.build.outputs.version }}
+          path: release
+      - name: Verify checksums
+        working-directory: release
+        run: sha256sum -c SHA256SUMS
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.build.outputs.tag }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          gh release create "$TAG" --draft --verify-tag \
+            --title "NEBULA $VERSION" \
+            --notes-file release/RELEASE_NOTES.md \
+            "release/NEBULA-$VERSION-source.tar.gz" \
+            "release/nebula-dashboard-$VERSION.tar.gz" \
+            release/SHA256SUMS

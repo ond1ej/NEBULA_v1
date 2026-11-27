@@ -1,0 +1,53 @@
+# NEBULA configuration example. The installer writes the real file to
+#   ~/Library/Application Support/NEBULA/config.yaml   (mode 0600; NEBULA-<instance> for other instances)
+# Every key is optional; the values below are the defaults. Restart the service after editing:
+#   .venv/bin/nebula restart
+# This file holds no secrets. API keys and tokens live in the macOS Keychain. See docs/configuration.md.
+
+instance:
+  id: default            # instance id; another install on the same Mac uses its own (nebula --instance <id> ...)
+  name: My NEBULA
+  bind_host: 127.0.0.1   # must stay loopback while security.bind_local_only is true
+  port: 3100             # dashboard and API; the remote gateway defaults to this port + 2
+
+vm:
+  ram_mb: 6144           # 4096 is a good value on 16 GB Macs (the installer picks it there)
+  cpu_count: 4
+  disk_gb_limit: 32      # the sparse VM disk grows up to this size
+
+agents:
+  default_active_limit: 2            # agents that may execute at the same time (1-8)
+  default_desktop: 1280x800
+  resource_policy: sleep_lru         # or queue_when_full
+  require_approval_for_sensitive_actions: true
+  max_steps_per_task: 30             # also a hard cap on model requests per task
+  screenshot_retention_days: 7
+
+live:
+  auto_connect: false
+  default_read_only: true
+  viewer_session_ttl_seconds: 90     # single-use viewer token lifetime
+  release_control_on_disconnect: true
+  control_lease_seconds: 300
+
+telegram:
+  enabled: false
+  pairing_ttl_seconds: 300
+  poll_timeout_seconds: 30
+  max_attachment_mb: 20
+  rate_limit_per_minute: 30
+
+providers:
+  allow_paid_fallback_without_consent: false
+  ollama_base_url: http://127.0.0.1:11434   # loopback only
+
+security:
+  bind_local_only: true
+  session_ttl_hours: 12
+  login_max_attempts: 5
+  login_lockout_seconds: 300
+
+lan:
+  enabled: false         # opt-in dashboard access from the local network (private addresses of en* interfaces only)
+  https: false           # extra HTTPS listener with the NEBULA local CA
+  https_port: 3443

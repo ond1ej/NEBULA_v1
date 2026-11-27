@@ -1,0 +1,80 @@
+[project]
+name = "nebula"
+version = "1.0.0"
+description = "NEBULA — self-hosted multi-agent AI platform: one shared Ubuntu ARM64 VM, per-agent Linux desktops, local web + Telegram control."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "sqlalchemy>=2.0.36",
+    "alembic>=1.14",
+    "argon2-cffi>=23.1",
+    "httpx>=0.28",
+    "keyring>=25.5",
+    "cryptography>=44",
+    "pyyaml>=6.0",
+    "pydantic>=2.10",
+    "python-multipart>=0.0.18",
+    "websockets>=14",
+    "pillow>=11",
+]
+
+[project.scripts]
+nebula = "nebula_setup.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.25",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "types-pyyaml",
+]
+
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "apps/host-api/nebula_host",
+    "apps/setup/nebula_setup",
+    "packages/contracts/nebula_contracts",
+    "packages/agent-runtime/nebula_runtime",
+    "packages/provider-adapters/nebula_providers",
+    "packages/telegram-gateway/nebula_telegram",
+    "packages/live-broker/nebula_live",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/unit", "tests/integration", "tests/security"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+pythonpath = [".", 
+    "apps/host-api", "apps/setup", "packages/contracts", "packages/agent-runtime",
+    "packages/provider-adapters", "packages/telegram-gateway", "packages/live-broker", "guest/guest-service",
+]
+markers = [
+    "hardware: requires the real NEBULA VM on this Mac (run via scripts/e2e.sh)",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["apps/dashboard", "migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "S", "UP"]
+# S110/S112: deliberate best-effort cleanup paths (closing sockets, optional probes);
+# S105: false positives on constant names such as TOKEN_URL / TOKEN_REF (no secret values in code).
+ignore = ["S101", "S603", "S607", "S311", "E501", "B008", "S104", "S108", "S110", "S112", "S105"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "B"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+check_untyped_defs = false

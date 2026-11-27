@@ -1,0 +1,4 @@
+# Guest VM Python packages (Ubuntu 24.04 ARM64, Python 3.12). Compile with scripts/lock-guest-requirements.sh.
+# playwright must equal manifest.json "playwright_version".
+playwright==1.65.2
+pillow

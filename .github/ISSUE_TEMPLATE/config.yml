@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/ond1ej/NEBULA_v1/security/advisories/new
+    about: Please report security problems privately through GitHub's private vulnerability reporting, not as an issue.
+  - name: Documentation
+    url: https://github.com/ond1ej/NEBULA_v1/tree/main/docs
+    about: Installation, troubleshooting, remote access, the security model and the FAQ.
+  - name: iOS companion app
+    url: https://github.com/ond1ej/NEBULA-iOS
+    about: Issues that only concern the iPhone app belong in the NEBULA-iOS repository.

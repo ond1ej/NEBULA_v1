@@ -1,0 +1,124 @@
+/*
+ * Imported by mini.css (the Mini App) and admin/admin.css (its administration area), after styles/theme.css: both
+ * stylesheets then define every token with the same value, so loading the second never changes the first.
+ */
+/*
+ * NEBULA Mini App design tokens. Dark is the default palette; :root[data-theme='light'] (theme.ts) swaps it.
+ * The Mini App uses the shared token names, so shared components (Live Desktop, toasts, dialogs) match it and their
+ * utilities are reused instead of duplicated:
+ *   surfaces   bg #101114 < panel (surface) #191B20 < panel-2 (surface-2) #22252B < panel-3 (elevated) #2A2D35
+ *   text       text #F5F6F8 > muted (text-2) #9B9FA9 > subtle (muted) #7D828D
+ *   accent     accent #8B7CF6, accent-hover #A397FF; success #36C991, warn #F4B860, danger #F07178
+ */
+@theme {
+  --color-bg: #101114;
+  --color-panel: #191b20;
+  --color-panel-2: #22252b;
+  --color-panel-3: #2a2d35;
+  --color-elevated: #22252b;
+  --color-input: #191b20;
+  --color-border: rgb(255 255 255 / 0.075);
+  --color-border-strong: rgb(255 255 255 / 0.12);
+  --color-border-hover: rgb(255 255 255 / 0.2);
+  --color-text: #f5f6f8;
+  --color-muted: #9b9fa9;
+  --color-subtle: #7d828d;
+  --color-accent: #8b7cf6;
+  --color-accent-hover: #a397ff;
+  --color-accent-soft: #a397ff;
+  --color-chart: #8b7cf6;
+  --color-success: #36c991;
+  --color-warn: #f4b860;
+  --color-danger: #f07178;
+  --color-info: #6cb4f5;
+
+  /* filled buttons: white label at >= 4.5:1 */
+  --color-accent-fill: #6e5fe6;
+  --color-accent-fill-hover: #7b6cf0;
+  --color-on-accent: #ffffff;
+  /* own chat bubble: subtle accent tint */
+  --color-bubble: #2b2747;
+  --color-bubble-fg: #f5f6f8;
+  --color-scrim: rgb(5 6 8 / 0.62);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+
+  /* type scale (>= 14 px for body copy; messages 16 px) */
+  --text-caption: 12px;
+  --text-caption--line-height: 16px;
+  --text-footnote: 13px;
+  --text-footnote--line-height: 18px;
+  --text-subhead: 14px;
+  --text-subhead--line-height: 20px;
+  --text-body: 15px;
+  --text-body--line-height: 21px;
+  --text-message: 16px;
+  --text-message--line-height: 23px;
+  --text-headline: 17px;
+  --text-headline--line-height: 22px;
+  --text-title: 20px;
+  --text-title--line-height: 26px;
+  --text-large: 30px;
+  --text-large--line-height: 36px;
+
+  --radius-bubble: 20px;
+  --radius-card: 16px;
+  --radius-sheet: 22px;
+
+
+  --ease-ios: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-sheet-in: sheet-in 220ms var(--ease-ios) both;
+  --animate-fade: fade-in 180ms ease-out both;
+  --animate-rise: rise-in 200ms var(--ease-ios) both;
+
+  @keyframes sheet-in {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: none;
+    }
+  }
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --color-bg: #f7f8fa;
+  --color-panel: #ffffff;
+  --color-panel-2: #f0f2f5;
+  --color-panel-3: #e7eaef;
+  --color-elevated: #ffffff;
+  --color-input: #ffffff;
+  --color-border: rgb(23 25 30 / 0.09);
+  --color-border-strong: rgb(23 25 30 / 0.14);
+  --color-border-hover: rgb(23 25 30 / 0.22);
+  --color-text: #17191e;
+  --color-muted: #666c78;
+  --color-subtle: #868b96;
+  --color-accent: #7464e8;
+  --color-accent-hover: #6253d9;
+  --color-accent-soft: #5b4bd6;
+  --color-chart: #7464e8;
+  --color-success: #1f9d6e;
+  --color-warn: #b7791f;
+  --color-danger: #d64550;
+  --color-info: #2f7fd1;
+  --color-accent-fill: #6b5adf;
+  --color-accent-fill-hover: #5d4cd3;
+  --color-bubble: #ebe8fd;
+  --color-bubble-fg: #17191e;
+  --color-scrim: rgb(15 17 22 / 0.38);
+  --shadow-card: 0 1px 2px rgb(16 18 24 / 0.06);
+  --shadow-overlay: 0 0 0 1px rgb(16 18 24 / 0.06), 0 18px 50px -12px rgb(16 18 24 / 0.3);
+  --shadow-pop: 0 0 0 1px rgb(16 18 24 / 0.06), 0 10px 30px -10px rgb(16 18 24 / 0.25);
+}

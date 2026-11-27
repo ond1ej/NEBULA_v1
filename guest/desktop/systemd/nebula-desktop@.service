@@ -1,0 +1,40 @@
+[Unit]
+Description=NEBULA agent desktop (Xvnc + XFCE) for %i
+After=network.target
+
+[Service]
+Type=simple
+User=%i
+Group=%i
+EnvironmentFile=/var/lib/nebula/agents/%i/desktop.env
+RuntimeDirectory=nebula-vnc/%i nebula-xdg/%i
+RuntimeDirectoryMode=0700
+ExecStart=/opt/nebula/guest/desktop/bin/nebula-desktop-session
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=yes
+# Sandboxing (audit VM-16). Xvnc, XFCE and the agent's desktop terminal run inside this unit.
+# A private /tmp (shared with this agent's nebula-tools@ unit, which joins it): no other agent can see or plant the
+# X socket, the X lock file or ICE sockets. Other agents' processes are out of sight:
+PrivateTmp=yes
+ProtectProc=invisible
+# No kernel tuning, modules, kernel log or cgroup changes:
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+# No setuid/setgid files, personality changes or realtime scheduling:
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictRealtime=yes
+# Unix sockets (X11 file + abstract socket, VNC unix socket, D-Bus), IP networking and netlink (GLib's network
+# monitor). No AF_VSOCK, AF_PACKET or other families.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+# Not set on purpose: RestrictNamespaces and MemoryDenyWriteExecute (a browser started from the desktop needs user
+# namespaces and a JIT), ProcSubset=pid (ps, top and free in the desktop terminal need /proc/stat and /proc/meminfo).
+MemoryHigh=450M
+MemoryMax=650M
+TasksMax=512
+
+[Install]
+WantedBy=multi-user.target

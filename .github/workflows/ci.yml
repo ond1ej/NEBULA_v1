@@ -1,0 +1,85 @@
+# Tests and build validation for every push and pull request. No secrets are used.
+# The hardware end-to-end harness (real VM, Virtualization.framework) cannot run on hosted runners: see docs/testing.md.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python lint and tests
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          enable-cache: false
+      - name: Install locked dependencies
+        run: |
+          uv venv --python 3.13 .venv
+          uv sync --locked
+      - name: Lint
+        run: |
+          .venv/bin/ruff check apps packages guest tests .github/scripts
+          # one file per bash -n call: `bash -n a b c` checks only `a` and passes the rest as arguments
+          for f in install.sh update.sh uninstall.sh guest/scripts/provision.sh guest/desktop/bin/nebula-desktop-session \
+                   scripts/*.sh; do
+            bash -n "$f" || { echo "shell syntax error: $f" >&2; exit 1; }
+          done
+      - name: Tests
+        env:
+          NEBULA_SECRET_BACKEND: memory
+        run: .venv/bin/python -m pytest -q
+
+  web:
+    name: Dashboard typecheck, tests and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/dashboard
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  swift:
+    name: Swift VM helper
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+      - name: VM helper build and tests
+        working-directory: apps/host-vm-helper
+        run: |
+          swift build -c release
+          swift test

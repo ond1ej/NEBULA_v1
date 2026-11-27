@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="710" viewBox="0 0 1160 710" role="img" aria-labelledby="arch-title arch-desc">
+  <title id="arch-title">NEBULA architecture</title>
+  <desc id="arch-desc">The web dashboard on the Mac talks to the host API on 127.0.0.1. Native apps reach the remote gateway through Tailscale Serve; the Telegram Mini App reaches it only through an opt-in public tunnel. The gateway forwards authenticated sessions to the host API, which applies its policy again. The host API keeps state in SQLite and secrets in the macOS Keychain, calls AI providers and polls the Telegram Bot API. It talks to the nebula-vm helper over Unix sockets; the helper carries HMAC-signed RPC frames and Live Desktop streams over virtio-vsock to the root guest service in the Ubuntu VM, which runs one Linux user with its own desktop and Chromium per agent. A guest firewall allows Internet egress and blocks local-network destinations.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#334155"/>
+    </marker>
+  </defs>
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; fill: #0f172a; }
+    .h { font-size: 13.5px; font-weight: 600; }
+    .t { font-size: 12px; fill: #334155; }
+    .s { font-size: 11px; fill: #475569; }
+    .g { font-size: 13px; font-weight: 700; fill: #1e293b; }
+    .box { fill: #ffffff; stroke: #334155; stroke-width: 1.2; }
+    .opt { fill: #ffffff; stroke: #334155; stroke-width: 1.2; stroke-dasharray: 5 4; }
+    .edge { fill: none; stroke: #334155; stroke-width: 1.4; }
+    .dash { stroke-dasharray: 6 4; }
+  </style>
+
+  <rect x="0" y="0" width="1160" height="710" fill="#ffffff"/>
+  <text x="20" y="30" class="g" style="font-size:18px">NEBULA architecture</text>
+  <text x="20" y="52" class="s">Default install shown. Dashed: off until you enable it.</text>
+
+  <!-- third-party services -->
+  <rect x="445" y="72" width="170" height="50" rx="8" class="box"/>
+  <text x="530" y="93" class="h" text-anchor="middle">AI providers</text>
+  <text x="530" y="111" class="s" text-anchor="middle">Ollama (local) · cloud APIs</text>
+  <rect x="640" y="72" width="170" height="50" rx="8" class="box"/>
+  <text x="725" y="93" class="h" text-anchor="middle">Telegram Bot API</text>
+  <text x="725" y="111" class="s" text-anchor="middle">api.telegram.org</text>
+
+  <!-- your devices -->
+  <rect x="20" y="150" width="190" height="540" rx="12" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="32" y="172" class="g">Your devices</text>
+  <rect x="35" y="212" width="160" height="60" rx="8" class="box"/>
+  <text x="115" y="237" class="h" text-anchor="middle">Web dashboard</text>
+  <text x="115" y="256" class="s" text-anchor="middle">browser on the Mac</text>
+  <rect x="35" y="372" width="160" height="60" rx="8" class="box"/>
+  <text x="115" y="397" class="h" text-anchor="middle">iPhone / Mac app</text>
+  <text x="115" y="416" class="s" text-anchor="middle">Secure Enclave device keys</text>
+  <rect x="35" y="520" width="160" height="60" rx="8" class="box"/>
+  <text x="115" y="545" class="h" text-anchor="middle">Telegram app</text>
+  <text x="115" y="564" class="s" text-anchor="middle">bot chat · Mini App</text>
+
+  <!-- tunnels -->
+  <rect x="226" y="330" width="188" height="270" rx="12" fill="#fff7ed" stroke="#fed7aa"/>
+  <text x="238" y="352" class="g">Remote access</text>
+  <rect x="240" y="372" width="160" height="60" rx="8" class="opt"/>
+  <text x="320" y="397" class="h" text-anchor="middle">Tailscale Serve</text>
+  <text x="320" y="416" class="s" text-anchor="middle">tailnet only · recommended</text>
+  <rect x="240" y="520" width="160" height="60" rx="8" class="opt"/>
+  <text x="320" y="545" class="h" text-anchor="middle">Funnel or Cloudflare</text>
+  <text x="320" y="564" class="s" text-anchor="middle">public · Mini App only</text>
+
+  <!-- the Mac -->
+  <rect x="430" y="150" width="400" height="540" rx="12" fill="#eef2ff" stroke="#c7d2fe"/>
+  <text x="442" y="172" class="g">Mac (host)</text>
+  <rect x="445" y="184" width="250" height="150" rx="8" class="box"/>
+  <text x="570" y="206" class="h" text-anchor="middle">Host API</text>
+  <text x="570" y="224" class="t" text-anchor="middle">FastAPI · 127.0.0.1:3100</text>
+  <text x="570" y="243" class="s" text-anchor="middle">auth · authz policy · orchestrator</text>
+  <text x="570" y="260" class="s" text-anchor="middle">providers · Telegram bots</text>
+  <rect x="458" y="274" width="224" height="48" rx="6" fill="#f8fafc" stroke="#64748b"/>
+  <text x="570" y="294" class="t" text-anchor="middle" style="font-weight:600">Live broker</text>
+  <text x="570" y="311" class="s" text-anchor="middle">viewer tokens · RFB filter · lease</text>
+
+  <rect x="710" y="184" width="105" height="60" rx="8" class="box"/>
+  <text x="762" y="209" class="h" text-anchor="middle">SQLite</text>
+  <text x="762" y="227" class="s" text-anchor="middle">Alembic</text>
+  <rect x="710" y="264" width="105" height="70" rx="8" class="box"/>
+  <text x="762" y="289" class="h" text-anchor="middle">macOS</text>
+  <text x="762" y="306" class="h" text-anchor="middle">Keychain</text>
+  <text x="762" y="323" class="s" text-anchor="middle">keys, tokens</text>
+
+  <rect x="445" y="372" width="200" height="84" rx="8" class="opt"/>
+  <text x="545" y="394" class="h" text-anchor="middle">Remote gateway</text>
+  <text x="545" y="412" class="t" text-anchor="middle">127.0.0.1:3102</text>
+  <text x="545" y="429" class="s" text-anchor="middle">Mini App files</text>
+  <text x="545" y="445" class="s" text-anchor="middle">Bearer sessions · rate limits</text>
+
+  <rect x="445" y="610" width="300" height="66" rx="8" class="box"/>
+  <text x="595" y="632" class="h" text-anchor="middle">nebula-vm helper</text>
+  <text x="595" y="649" class="t" text-anchor="middle">Swift · Virtualization.framework</text>
+  <text x="595" y="665" class="s" text-anchor="middle">EFI boot · NAT · vsock bridges</text>
+
+  <!-- the VM -->
+  <rect x="860" y="150" width="280" height="540" rx="12" fill="#ecfdf5" stroke="#a7f3d0"/>
+  <text x="872" y="172" class="g">Ubuntu 24.04 ARM64 VM</text>
+  <rect x="875" y="184" width="250" height="62" rx="8" class="box"/>
+  <text x="1000" y="205" class="h" text-anchor="middle">Guest firewall (nftables)</text>
+  <text x="1000" y="222" class="s" text-anchor="middle">Internet: allowed</text>
+  <text x="1000" y="238" class="s" text-anchor="middle">LAN · Mac · tailnet · link-local: blocked</text>
+
+  <rect x="875" y="268" width="220" height="110" rx="8" class="box"/>
+  <text x="985" y="290" class="h" text-anchor="middle">Agent A · Linux user</text>
+  <text x="985" y="309" class="s" text-anchor="middle">XFCE on Xvnc (Unix socket)</text>
+  <text x="985" y="326" class="s" text-anchor="middle">headed Chromium</text>
+  <text x="985" y="343" class="s" text-anchor="middle">tool server · workspace</text>
+  <text x="985" y="360" class="s" text-anchor="middle">no sudo</text>
+  <rect x="875" y="398" width="220" height="110" rx="8" class="box"/>
+  <text x="985" y="420" class="h" text-anchor="middle">Agent B · Linux user</text>
+  <text x="985" y="439" class="s" text-anchor="middle">XFCE on Xvnc (Unix socket)</text>
+  <text x="985" y="456" class="s" text-anchor="middle">headed Chromium</text>
+  <text x="985" y="473" class="s" text-anchor="middle">tool server · workspace</text>
+  <text x="985" y="490" class="s" text-anchor="middle">no sudo</text>
+
+  <rect x="875" y="610" width="250" height="66" rx="8" class="box"/>
+  <text x="1000" y="632" class="h" text-anchor="middle">nebula-guest service (root)</text>
+  <text x="1000" y="649" class="s" text-anchor="middle">checks HMAC, timestamp, nonce</text>
+  <text x="1000" y="665" class="s" text-anchor="middle">per-agent sockets, peer uid checked</text>
+
+  <!-- edges -->
+  <path d="M195,242 H443" class="edge" marker-end="url(#arrow)"/>
+  <text x="320" y="234" class="s" text-anchor="middle">HTTP · SSE · WebSocket (loopback)</text>
+
+  <path d="M195,402 H238" class="edge dash" marker-end="url(#arrow)"/>
+  <path d="M400,402 H443" class="edge dash" marker-end="url(#arrow)"/>
+
+  <path d="M195,550 H238" class="edge dash" marker-end="url(#arrow)"/>
+  <path d="M400,550 H420 V440 H443" class="edge dash" marker-end="url(#arrow)"/>
+  <text x="320" y="470" class="s" text-anchor="middle">each tunnel forwards HTTPS</text>
+  <text x="320" y="486" class="s" text-anchor="middle">to the gateway port only</text>
+
+  <path d="M470,372 V337" class="edge dash" marker-end="url(#arrow)"/>
+  <text x="480" y="360" class="s">sessions; policy checked again</text>
+
+  <path d="M530,184 V125" class="edge" marker-end="url(#arrow)"/>
+  <text x="538" y="142" class="s">HTTPS</text>
+  <path d="M680,184 V125" class="edge" marker-end="url(#arrow)"/>
+  <text x="688" y="142" class="s">long polling, outbound only</text>
+
+  <path d="M695,214 H708" class="edge" marker-end="url(#arrow)"/>
+  <path d="M695,299 H708" class="edge" marker-end="url(#arrow)"/>
+
+  <path d="M670,334 V607" class="edge" marker-end="url(#arrow)"/>
+  <text x="680" y="520" class="s">Unix sockets</text>
+  <text x="680" y="536" class="s">RPC · Live Desktop</text>
+
+  <path d="M745,641 H873" class="edge" marker-end="url(#arrow)"/>
+  <text x="802" y="632" class="s" text-anchor="middle">virtio-vsock</text>
+  <text x="802" y="658" class="s" text-anchor="middle">HMAC frames</text>
+
+  <path d="M1112,610 V323 H1097" class="edge" marker-end="url(#arrow)"/>
+  <path d="M1112,453 H1097" class="edge" marker-end="url(#arrow)"/>
+</svg>

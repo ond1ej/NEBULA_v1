@@ -1,0 +1,53 @@
+# Fails when a runtime dependency (Python or the dashboard's production npm packages) has a license that is not on the
+# allowlist in .github/scripts/license_check.py (copyleft such as GPL/AGPL/LGPL, or missing license metadata).
+name: license-check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - pyproject.toml
+      - uv.lock
+      - apps/dashboard/package.json
+      - apps/dashboard/pnpm-lock.yaml
+      - .github/scripts/license_check.py
+      - .github/workflows/license-check.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  licenses:
+    name: Runtime dependency licenses
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          enable-cache: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: 11.9.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Python runtime dependencies only (no dev group)
+        run: |
+          uv venv --python 3.13 .venv
+          uv sync --locked --no-dev
+      - name: Dashboard production dependencies
+        working-directory: apps/dashboard
+        run: |
+          pnpm install --frozen-lockfile --prod --ignore-scripts
+          pnpm licenses list --prod --json > "$RUNNER_TEMP/npm-licenses.json"
+      - name: Check licenses
+        run: .venv/bin/python -I .github/scripts/license_check.py --python --npm-json "$RUNNER_TEMP/npm-licenses.json"

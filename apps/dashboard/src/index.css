@@ -1,0 +1,6 @@
+/* Dashboard stylesheet: Tailwind utilities for the Dashboard's sources + the shared NEBULA theme. */
+@import 'tailwindcss';
+@import './styles/theme.css';
+
+/* Mini App screens get their own stylesheet (src/mini/mini.css). */
+@source not './mini';

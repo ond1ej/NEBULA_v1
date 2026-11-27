@@ -1,0 +1,88 @@
+name: Bug report
+description: Something does not work as documented.
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug.
+
+        **Security problems must not be reported here.** Use private vulnerability reporting instead (see SECURITY.md).
+
+        Please remove personal data before you post: names, e-mail addresses, Tailscale or other host names, IP
+        addresses, tokens and keys, screenshots of private conversations or desktops.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: NEBULA version or commit
+      placeholder: "1.0.0, or the output of: git rev-parse --short HEAD"
+    validations:
+      required: true
+  - type: input
+    id: mac
+    attributes:
+      label: Mac and macOS
+      placeholder: "for example: Mac mini, M-series chip, 16 GB RAM, macOS 15.x"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Installer, update or uninstall
+        - VM, guest or desktops
+        - Agents and tasks
+        - Live Desktop
+        - AI providers
+        - Dashboard
+        - Remote access (gateway, Tailscale, tunnels)
+        - Telegram bot or Mini App
+        - iPhone or Mac app
+        - Password Vault or Smart sign-in
+        - Host execution
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `.venv/bin/nebula doctor`
+      description: Remove host names and paths you do not want to share.
+      render: json
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log lines
+      description: |
+        From ~/Library/Logs/NEBULA/host.log or the redacted bundle of `.venv/bin/nebula diagnostics`. Read them
+        before you paste them.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and the troubleshooting guide.
+          required: true
+        - label: I removed personal data, tokens and keys from this report.
+          required: true
