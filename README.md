@@ -112,7 +112,7 @@ instance with synthetic tasks and a small local model (`qwen2.5:3b` through Olla
 | ![Take Control](docs/images/take-control.png) | ![AI providers](docs/images/providers.png) |
 | **Take Control**: you drive, the agent waits | **AI Providers**: local, API key and official sign-in |
 | ![Onboarding](docs/images/onboarding.png) | ![iOS app](docs/images/ios-app.png) |
-| **First run**: admin account and setup | **iPhone app**: chats, approvals and Live Desktop |
+| **First run**: admin account and setup | **iPhone app**: chats, a conversation and agents |
 | ![Remote access](docs/images/remote-access.png) | ![Approval Center](docs/images/approvals.png) |
 | **Remote Access**: gateway and Tailscale Serve | **Approval Center**: the exact operation an agent wants to run |
 

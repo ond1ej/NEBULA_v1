@@ -95,6 +95,7 @@ corepack_pnpm_version() {
 
 CHECK=0
 YES=0
+UV_PINNED="0.9.28"  # the uv release this version of NEBULA was built and tested with (used only by the curl installer)
 AUTOSTART=ask
 INSTANCE="${NEBULA_INSTANCE:-}"
 PORT=""
@@ -336,8 +337,13 @@ if [ "$MISSING_UV" = 1 ]; then
   if [ -n "$BREW" ]; then
     confirm "Install uv with Homebrew (brew install uv)?" && brew install uv || die "uv is required: https://docs.astral.sh/uv/"
   else
-    if confirm "Install uv with its official installer (curl -LsSf https://astral.sh/uv/install.sh | sh; installs to ~/.local/bin)?"; then
-      curl -LsSf https://astral.sh/uv/install.sh | sh
+    # A downloaded installer script is never run unattended: --yes does not answer this question.
+    UV_INSTALLER="https://astral.sh/uv/$UV_PINNED/install.sh"
+    if [ "$YES" = 1 ]; then
+      die "uv is required. --yes never runs a downloaded installer: install uv first (brew install uv, or $UV_INSTALLER)"
+    fi
+    if confirm "Install uv $UV_PINNED with its official installer (curl -LsSf $UV_INSTALLER | sh; installs to ~/.local/bin)?"; then
+      curl --proto '=https' --tlsv1.2 -LsSf "$UV_INSTALLER" | sh
       PATH="$HOME/.local/bin:$PATH"
     else die "uv is required: https://docs.astral.sh/uv/"; fi
   fi

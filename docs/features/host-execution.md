@@ -88,8 +88,9 @@ developer tools present on the Mac and installs nothing globally.
   profile or in NEBULA's own file tools would act with your user's rights.
 - **Approval rules are tripwires for the obvious cases, not a security boundary.** A command can still read a secret
   file through a glob or a computed name, and can still send data out with a plain GET request, a raw socket or a DNS
-  lookup, without asking. The boundaries are the macOS sandbox (only the project folder and the agent's own home are
-  readable; network only if you allow it for the folder) and, in the VM, the separate Linux user per agent and the
+  lookup, without asking. The boundaries are the macOS sandbox (of your own files, only the project folder and the
+  agent's own home are readable, besides system and developer-tool locations; network only if you allow it for the
+  folder) and, in the VM, the separate Linux user per agent and the
   guest firewall. Do not authorise a project folder that holds secrets you are not willing to expose to the agent.
 - **With network access on**, NEBULA blocks only the Mac itself (all of its addresses) and its Unix sockets (except
   name resolution). Treat the Internet and other devices on your network as reachable: the profile does not restrict

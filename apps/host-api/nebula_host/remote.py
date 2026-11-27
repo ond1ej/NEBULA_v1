@@ -742,4 +742,5 @@ class RemoteManager:
                     "on the Internet. Alternatives that ARE public on the Internet: Tailscale Funnel (needs Funnel "
                     "enabled in your tailnet policy) or a Cloudflare quick tunnel (install cloudflared; TLS ends at "
                     f"Cloudflare). Or your own HTTPS reverse proxy to 127.0.0.1:{s['port']}. NEBULA never opens "
-                    "router ports and only exposes the narrow Mini App gateway, not the Dashboard.")}
+                    "router ports. A tunnel reaches only the app gateway, never the Dashboard's password sign-in, "
+                    "but a signed-in owner session can administer NEBULA through it: keep it private where you can.")}

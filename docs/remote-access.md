@@ -114,7 +114,7 @@ tailnet name become visible there; choose names that reveal nothing you want to 
 
 1. **Dashboard → Remote Access** → enable the gateway. Keep the suggested port unless it is taken.
 2. Choose **Tailscale Serve** and press **Start**.
-3. NEBULA runs `tailscale serve --bg --https=<port> http://127.0.0.1:<gateway port>`, so it uses one Tailscale
+3. NEBULA runs `tailscale serve --bg --yes --https=<port> http://127.0.0.1:<gateway port>`, so it uses one Tailscale
    HTTPS port only: the setting `tailscale_https_port`, default `443`. If that HTTPS port of the Mac's Tailscale node already
    serves something else, NEBULA refuses to start instead of replacing it. It reads the node's DNS name from
    `tailscale status` and fills in the URL, `https://<your-mac>.<your-tailnet>.ts.net` (with `:<port>` when the HTTPS
