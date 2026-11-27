@@ -59,7 +59,7 @@ def test_host01_authorise_folder_and_reject_bad_paths(client, tmp_path):
     for bad in ("/etc", "relative/dir", str(tmp_path / "missing")):
         assert client.post("/api/v1/host/roots", json={"path": bad}, headers=h).status_code in (400, 404), bad
     st = client.post(f"/api/v1/host/roots/{root['id']}/selftest", headers=h).json()["data"]
-    assert st["passed"] is True, st
+    assert st["passed"] is True, [p for p in st["probes"] if not p["passed"]]
     tools = client.get("/api/v1/host/tools").json()["data"]
     assert tools["sandbox"] is True and tools["tools"]["git"]["available"] is True
     assert tools["gui_control"]["available"] is False
@@ -575,8 +575,16 @@ def test_mm01_to_08_upload_process_and_task_link(client, tmp_path, monkeypatch, 
     assert im["kind"] == "image" and im["status"] == "PROCESSED" and im["extracted"]["width"] == 64
     thumb = client.get(f"/api/v1/attachments/{im['id']}/content", params={"derived": "derived/model.jpg"})
     assert thumb.status_code == 200 and thumb.content[:3] == b"\xff\xd8\xff"  # re-encoded JPEG (metadata stripped)
+    from nebula_host import media
+
     pdf = up("spec.pdf", _tiny_pdf("NEBULA specification 42"), "application/pdf").json()["data"]
-    assert pdf["kind"] == "pdf" and "NEBULA specification 42" in pdf["extracted"]["excerpt"] and pdf["extracted"]["pages"] == 1
+    have_poppler = media.which("pdftotext") is not None and media.which("pdfinfo") is not None
+    if have_poppler:
+        assert pdf["kind"] == "pdf" and "NEBULA specification 42" in pdf["extracted"]["excerpt"]
+        assert pdf["extracted"]["pages"] == 1
+    else:  # poppler is optional (Homebrew): the file is kept and the failure is stated, no text is invented
+        assert pdf["kind"] == "pdf" and pdf["status"] == "FAILED" and "pdftotext" in pdf["error"]
+        assert "excerpt" not in pdf["extracted"]
     ns = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
     d = io.BytesIO()
     with zipfile.ZipFile(d, "w") as z:
@@ -599,14 +607,7 @@ def test_mm01_to_08_upload_process_and_task_link(client, tmp_path, monkeypatch, 
     assert bz["status"] == "FAILED" and "compression ratio" in bz["error"]
     csvd = up("data.csv", b"name,amount\nrent,1200\nfood,300\n", "text/csv").json()["data"]
     assert csvd["extracted"]["table"]["columns"] == ["name", "amount"]
-    # MM-05 video: a real 2-second clip made with ffmpeg -> metadata + bounded frame sampling
-    vid = tmp_path / "ui.mp4"
-    subprocess.run(["/opt/homebrew/bin/ffmpeg", "-loglevel", "error", "-f", "lavfi", "-i",
-                    "testsrc=duration=2:size=320x240:rate=10", "-pix_fmt", "yuv420p", str(vid)], check=True)
-    vv = up("ui.mp4", vid.read_bytes(), "video/mp4").json()["data"]
-    assert vv["kind"] == "video" and vv["status"] == "PROCESSED", vv
-    assert 1.5 <= vv["extracted"]["media"]["duration_s"] <= 2.5 and vv["extracted"]["media"]["video"]["width"] == 320
-    assert 1 <= len(vv["extracted"]["frames"]) <= 6
+    # MM-05 video: test_mm05_video_metadata_and_bounded_frames (needs ffmpeg)
     # MM-08 unsupported / dangerous formats
     for name, data, mime in (("x.exe", b"MZ\x90\0" + b"\0" * 64, "application/octet-stream"),
                              ("blob.bin", b"\0\1\2\3" * 64, "application/octet-stream"),
@@ -616,12 +617,16 @@ def test_mm01_to_08_upload_process_and_task_link(client, tmp_path, monkeypatch, 
     # MM-06 several attachments in one task + MM-07 vision honesty (scripted model has no vision)
     prov = ScriptedProvider([complete("compared")])
     _use_provider(monkeypatch, prov)
-    ids = [im["id"], pdf["id"], vv["id"]]
+    ids = [im["id"], pdf["id"], docx["id"]]
     t = client.post(f"/api/v1/agents/{a['id']}/tasks", json={"prompt": "Compare these", "attachment_ids": ids},
                     headers=h).json()["data"]
     _wait(client, t["id"], {"COMPLETED"})
     first = prov.requests[0].messages[0].content
-    assert "ATTACHMENTS" in first and "spec.pdf" in first and "NEBULA specification 42" in first
+    assert "ATTACHMENTS" in first and "spec.pdf" in first and "Login requirements" in first
+    if have_poppler:
+        assert "NEBULA specification 42" in first
+    else:
+        assert "processing failed: pdftotext" in first
     assert "cannot see the attached images" in first and prov.requests[0].messages[0].images_b64 == []
     linked = client.get(f"/api/v1/agents/{a['id']}/attachments", params={"task_id": t["id"]}).json()["data"]
     assert {x["id"] for x in linked} == set(ids)
@@ -631,6 +636,32 @@ def test_mm01_to_08_upload_process_and_task_link(client, tmp_path, monkeypatch, 
     b = _agent(client, h, "Other")
     r = client.post(f"/api/v1/agents/{b['id']}/tasks", json={"prompt": "x", "attachment_ids": [pdf["id"]]}, headers=h)
     assert r.status_code == 400
+
+
+def test_mm05_video_metadata_and_bounded_frames(client, tmp_path, monkeypatch, fake_guest):
+    """A real 2-second clip made with ffmpeg -> metadata + bounded frame sampling, then linked to a task."""
+    from nebula_host import media
+
+    ff = media.which("ffmpeg")
+    if ff is None or media.which("ffprobe") is None:
+        pytest.skip("ffmpeg/ffprobe are not installed (optional): video attachments need them")
+    h = _setup_admin(client)
+    a = _agent(client, h)
+    vid = tmp_path / "ui.mp4"
+    subprocess.run([ff, "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=duration=2:size=320x240:rate=10",
+                    "-pix_fmt", "yuv420p", str(vid)], check=True)
+    vv = client.post(f"/api/v1/agents/{a['id']}/attachments", files={"file": ("ui.mp4", vid.read_bytes(), "video/mp4")},
+                     headers=h).json()["data"]
+    assert vv["kind"] == "video" and vv["status"] == "PROCESSED", vv
+    assert 1.5 <= vv["extracted"]["media"]["duration_s"] <= 2.5 and vv["extracted"]["media"]["video"]["width"] == 320
+    assert 1 <= len(vv["extracted"]["frames"]) <= 6
+    prov = ScriptedProvider([complete("seen")])
+    _use_provider(monkeypatch, prov)
+    t = client.post(f"/api/v1/agents/{a['id']}/tasks", json={"prompt": "Look", "attachment_ids": [vv["id"]]},
+                    headers=h).json()["data"]
+    _wait(client, t["id"], {"COMPLETED"})
+    first = prov.requests[0].messages[0].content
+    assert "ui.mp4" in first and "video: " in first and "320x240" in first
 
 
 def test_mm07_vision_capable_model_receives_images(client, monkeypatch):

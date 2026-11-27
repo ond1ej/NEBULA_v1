@@ -354,14 +354,47 @@ async def test_voice01_04_05_06_07_pipeline_with_real_local_tts(tg3, monkeypatch
     assert any("Transcription failed" in t and "model file corrupt" in t for t in fake.texts(7))
 
 
+def _require_say():
+    import shutil
+
+    if not shutil.which("say"):
+        pytest.skip("macOS `say` is not available")
+
+
 async def test_voice04_real_macos_tts_produces_ogg_opus(dbinit):
+    """Real `say` + ffmpeg on this Mac. ffmpeg is optional (Homebrew); without it voice replies use the M4A
+    fallback, which test_voice04_real_macos_tts_m4a_fallback_without_ffmpeg covers."""
+    import shutil
+
     from nebula_host import tts
 
-    r = await tts.synthesize("Ahoj, tady NEBULA. Úkol je hotový.", language="cs")
-    assert r["audio"][:4] == b"OggS" and r["mime"] == "audio/ogg" and r["voice"] == "Zuzana"
-    assert r["duration_s"] and r["duration_s"] > 1
+    _require_say()
+    if tts._ffmpeg() is None:
+        pytest.skip("ffmpeg is not installed (optional): OGG/Opus voice replies need it")
     e = await tts.synthesize("Hello from NEBULA", language="en")
-    assert e["audio"][:4] == b"OggS" and e["voice"]
+    assert e["audio"][:4] == b"OggS" and e["mime"] == "audio/ogg" and e["voice"]
+    czech = [v["id"] for v in tts.voices() if v["language"] == "cs"]
+    if not czech:
+        pytest.skip("no Czech macOS voice installed (System Settings > Accessibility > Spoken Content)")
+    r = await tts.synthesize("Ahoj, tady NEBULA. Úkol je hotový.", language="cs")
+    assert r["audio"][:4] == b"OggS" and r["mime"] == "audio/ogg"
+    assert r["voice"] == ("Zuzana" if "Zuzana" in czech else czech[0])  # the default Czech voice when installed
+    if shutil.which("ffprobe", path="/opt/homebrew/bin:/usr/local/bin:/usr/bin"):
+        assert r["duration_s"] and r["duration_s"] > 1
+
+
+async def test_voice04_real_macos_tts_m4a_fallback_without_ffmpeg(dbinit, monkeypatch):
+    """Without ffmpeg the local voice still works: `say` + afconvert produce an M4A (AAC) voice note."""
+    from nebula_host import tts
+
+    _require_say()
+    monkeypatch.setattr(tts, "_ffmpeg", lambda: None)
+    e = await tts.synthesize("Hello from NEBULA", language="en")
+    assert e["audio"][4:8] == b"ftyp" and e["mime"] == "audio/mp4" and e["format"] == "m4a" and e["voice"]
+    czech = [v["id"] for v in tts.voices() if v["language"] == "cs"]
+    if czech:  # the Czech default voice is picked the same way on this path
+        r = await tts.synthesize("Ahoj, tady NEBULA.", language="cs")
+        assert r["audio"][4:8] == b"ftyp" and r["voice"] == ("Zuzana" if "Zuzana" in czech else czech[0])
 
 
 # ====================================================================================== MM via Telegram
