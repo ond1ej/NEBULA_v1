@@ -6,6 +6,7 @@ import asyncio
 import base64
 import io
 import json
+import logging
 import os
 import platform
 import shutil
@@ -18,6 +19,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Request, WebSocket
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response, StreamingResponse
+from nebula_providers.base import ProviderError
 from nebula_runtime.orchestrator import get_task
 from nebula_runtime.tools import LEVEL_PERMISSIONS, TOOLS
 from pydantic import BaseModel, Field
@@ -754,11 +756,15 @@ async def siwc_callback(request: Request):
     try:
         info = await provs.siwc_session().complete(params.get("state", ""), params.get("code", ""),
                                                    callback_client_id=params.get("client_id"), iss=params.get("iss"))
-    except Exception as e:  # noqa: BLE001 - only an OAuth failure means the sign-in failed
+    except ProviderError as e:  # an OAuth failure: its message is written for the person signing in
         import html
 
         return HTMLResponse(f"<h3>Sign in with ChatGPT failed</h3><p>{html.escape(str(e)[:400])}</p>"
                             "<p><a href='/#/providers'>Back to NEBULA</a></p>", status_code=400)
+    except Exception:  # noqa: BLE001 - any other failure is internal: logged on the host, never echoed to the page
+        logging.getLogger("nebula").exception("Sign in with ChatGPT: completing the sign-in failed")
+        return HTMLResponse("<h3>Sign in with ChatGPT failed</h3><p>An internal error occurred; the details are in "
+                            "the NEBULA log.</p><p><a href='/#/providers'>Back to NEBULA</a></p>", status_code=500)
     audit("user:oauth", "provider.siwc.connected", "openai-siwc",
           {"client_id": info.get("client_id"), "can_use_plan": info.get("can_use_plan")})
     # Sign-in succeeded and the credential is stored. Reachability of api.openai.com is checked separately so
