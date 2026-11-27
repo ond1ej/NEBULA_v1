@@ -774,7 +774,10 @@ async def attachments_content(att_id: str, derived: str | None = None, p: auth.P
     except attsvc.AttachmentError as e:
         raise ApiError(e.status, e.code, e.message) from e
     if derived:
-        f = (src.parent / derived).resolve()
+        try:
+            f = (src.parent / derived).resolve()
+        except (ValueError, OSError):  # e.g. a NUL byte: no such file
+            raise ApiError(404, "not_found", "no such derived file") from None
         if (src.parent / "derived").resolve() not in f.parents or not f.is_file():
             raise ApiError(404, "not_found", "no such derived file")
         return FileResponse(f, headers={"Cache-Control": "private, max-age=300", "X-Content-Type-Options": "nosniff"})

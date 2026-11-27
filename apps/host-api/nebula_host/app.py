@@ -514,7 +514,11 @@ def create_app() -> FastAPI:
             page = dist / "mini.html"
             if page.exists():
                 return FileResponse(page, headers={"Cache-Control": "no-store"})
-        f = (dist / path).resolve()
+        try:
+            f = (dist / path).resolve()
+        except (ValueError, OSError):  # e.g. a NUL byte in the path: not a file, serve the app shell
+            f = dist / "index.html"
+            path = ""
         if path and f.is_file() and dist.resolve() in f.parents and not f.name.endswith((".br", ".gz")):
             from nebula_host.static import file_response
 

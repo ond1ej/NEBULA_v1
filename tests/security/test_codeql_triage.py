@@ -44,6 +44,8 @@ def test_spa_route_never_serves_a_file_outside_the_dashboard_build(client, dist)
         r = client.get(url)
         assert OUTSIDE not in r.text, url
         assert r.text == "<html>dashboard</html>", url  # falls back to the SPA shell
+    r = client.get("/x%00y")  # a NUL byte makes Path.resolve() raise: still the app shell, never a 500
+    assert r.status_code == 200 and r.text == "<html>dashboard</html>"
 
 
 def test_gateway_assets_never_serve_a_file_outside_the_build(dist):
@@ -77,7 +79,7 @@ def test_attachment_derived_files_stay_inside_their_derived_folder(client, tmp_p
     src = attsvc.path_of(svc.cfg, attsvc.get(att["id"]))
     (src.parent / "derived" / "link.txt").symlink_to(outside)
     for derived in ("../../../../../../../../outside.txt", "derived/../../" + att["id"] + "/" + src.name,
-                    str(outside), "derived/link.txt", "derived%2F..%2F..%2Foutside.txt", ""):
+                    str(outside), "derived/link.txt", "derived%2F..%2F..%2Foutside.txt", "derived/a\x00b", ""):
         r = client.get(url, params={"derived": derived})
         assert OUTSIDE not in r.text, derived
         if derived:
